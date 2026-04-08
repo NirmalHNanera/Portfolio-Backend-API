@@ -1,0 +1,6 @@
+@PortfolioContactAPI_HostAddress = http://localhost:5288
+
+GET {{PortfolioContactAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
