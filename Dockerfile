@@ -15,8 +15,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Expose the port Render expects (usually 80 or 8080, we will use 80)
-EXPOSE 80
-ENV ASPNETCORE_URLS=http://+:80
+# Expose the port Render expects
+EXPOSE 10000
+ENV ASPNETCORE_URLS=http://+:10000
 
 ENTRYPOINT ["dotnet", "PortfolioContactAPI.dll"]
