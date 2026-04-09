@@ -7,12 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure CORS - In production, you should replace "*" with your actual portfolio URL
+// Configure CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PortfolioPolicy", policy =>
     {
-        policy.AllowAnyOrigin() // Change to your frontend URL later for extra security
+        policy.AllowAnyOrigin() 
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -20,29 +20,32 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Enable Swagger in Development or if explicitly needed
-if (app.Environment.IsDevelopment() || true) // Keeping true for testing purposes
+// Enable Swagger
+if (app.Environment.IsDevelopment() || true) 
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // REMOVED FOR CLOUD COMPATIBILITY
 app.UseCors("PortfolioPolicy");
+
+// Root endpoint for Render health check
+app.MapGet("/", () => "Portfolio API is running!");
 
 // Contact API Endpoint
 app.MapPost("/api/contact", async (ContactRequest request, IConfiguration config) =>
 {
     if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Message))
     {
-        return Results.BadRequest(new { message = "All fields (Name, Email, Message) are required." });
+        return Results.BadRequest(new { message = "All fields are required." });
     }
 
     try
     {
         var smtpSettings = config.GetSection("SmtpSettings");
-        string fromEmail = smtpSettings["FromEmail"] ?? throw new Exception("FromEmail not configured.");
-        string fromPassword = smtpSettings["FromPassword"] ?? throw new Exception("FromPassword not configured.");
+        string fromEmail = smtpSettings["FromEmail"] ?? "nirmalwebsmithsolution@gmail.com";
+        string fromPassword = config["SmtpSettings__FromPassword"] ?? smtpSettings["FromPassword"] ?? "";
         string smtpHost = smtpSettings["Host"] ?? "smtp.gmail.com";
         int smtpPort = int.Parse(smtpSettings["Port"] ?? "587");
         bool enableSsl = bool.Parse(smtpSettings["EnableSsl"] ?? "true");
@@ -69,9 +72,8 @@ app.MapPost("/api/contact", async (ContactRequest request, IConfiguration config
     }
     catch (Exception ex)
     {
-        // Log the exception (using a real logger is better, but this is for simplicity)
         Console.WriteLine($"Error sending email: {ex.Message}");
-        return Results.Problem("Sorry, there was an error sending your message. Please try again later.");
+        return Results.Problem("Error sending message. Check Render environment variables.");
     }
 })
 .WithName("SendContactEmail")
