@@ -3,11 +3,9 @@ using System.Net.Mail;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services for Swagger/OpenAPI for testing
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PortfolioPolicy", policy =>
@@ -20,20 +18,17 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Enable Swagger
 if (app.Environment.IsDevelopment() || true) 
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// app.UseHttpsRedirection(); // REMOVED FOR CLOUD COMPATIBILITY
+// app.UseHttpsRedirection(); // REMOVED
 app.UseCors("PortfolioPolicy");
 
-// Root endpoint for Render health check
-app.MapGet("/", () => "Portfolio API is running!");
+app.MapGet("/", () => "Portfolio API is running! (V2 - Debug Mode)");
 
-// Contact API Endpoint
 app.MapPost("/api/contact", async (ContactRequest request, IConfiguration config) =>
 {
     if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Message))
@@ -44,7 +39,9 @@ app.MapPost("/api/contact", async (ContactRequest request, IConfiguration config
     try
     {
         var smtpSettings = config.GetSection("SmtpSettings");
-        string fromEmail = smtpSettings["FromEmail"] ?? "nirmalwebsmithsolution@gmail.com";
+        
+        // Priority: 1. Render Env Var, 2. appsettings.json
+        string fromEmail = config["SmtpSettings__FromEmail"] ?? smtpSettings["FromEmail"] ?? "nirmalwebsmithsolution@gmail.com";
         string fromPassword = config["SmtpSettings__FromPassword"] ?? smtpSettings["FromPassword"] ?? "";
         string smtpHost = smtpSettings["Host"] ?? "smtp.gmail.com";
         int smtpPort = int.Parse(smtpSettings["Port"] ?? "587");
@@ -65,6 +62,7 @@ app.MapPost("/api/contact", async (ContactRequest request, IConfiguration config
         smtpClient.EnableSsl = enableSsl;
         smtpClient.UseDefaultCredentials = false;
         smtpClient.Credentials = new NetworkCredential(fromEmail, fromPassword);
+        smtpClient.DeliveryMethod = SmtpDeliveryMethod.Network;
         
         await smtpClient.SendMailAsync(message);
 
@@ -72,8 +70,12 @@ app.MapPost("/api/contact", async (ContactRequest request, IConfiguration config
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error sending email: {ex.Message}");
-        return Results.Problem("Error sending message. Check Render environment variables.");
+        // DETAILED LOGGING
+        Console.WriteLine($"FULL ERROR: {ex.Message}");
+        if (ex.InnerException != null) {
+            Console.WriteLine($"INNER ERROR: {ex.InnerException.Message}");
+        }
+        return Results.Problem("Email sending failed. Check Render logs for 'FULL ERROR'.");
     }
 })
 .WithName("SendContactEmail")
