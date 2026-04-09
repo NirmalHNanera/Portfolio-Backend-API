@@ -35,7 +35,7 @@ app.MapPost("/api/contact", async (ContactRequest request, IConfiguration config
     try
     {
         var smtpSettings = config.GetSection("SmtpSettings");
-        string fromEmail = config["SmtpSettings__FromEmail"] ?? smtpSettings["FromEmail"] ?? "nirmalwebsmithsolution@gmail.com";
+        string fromEmail = "nirmalwebsmithsolution@gmail.com";
         string fromPassword = "txad dcga donz mrmi";
         
         using var message = new MailMessage();
